@@ -1,0 +1,96 @@
+### script 0-7: Analyzing General Social Survey (GSS) using R Language ####
+### Objective : Finding associationusing "Arules" package for any dependent varible selected in the script 0-1A  ###
+
+############################################################
+# Set working directory, where gss data, scripts, outputs will be stored.
+setwd("C:/Users/gagranis/Documents/R/gss/tutorialGSS")
+
+# load shortGSS.rda dataset created in 2.DummyVar_SurveypackGSS.R script.
+load("C:/Users/gagranis/Documents/R/gss/tutorialGSS/shortGSS.rda")
+
+#load required packages.
+library("ggplot2")
+library("gridExtra")
+library("scales")
+library("arules")
+library("arulesViz")
+library("gridBase")
+library("lattice")
+library("grid")
+
+############################################################
+# Select the interest variables.
+var <- c('depvar_g','marital',  'age_g1',  'degree',  'sex',  'race',	'region',	'partyid',	'polviews',	'attend',	'realinc_g1','pres_g1')
+
+
+#  Remove na values and convert all numeric and integer varibles as factors.
+shortGSSAr<- na.omit(shortGSS[c(var)])
+shortGSSAr[var] <- lapply(shortGSSAr[var], as.factor) 
+
+
+# Data are automatically recoded as a binary incidence matrix by coercing the data set to transactions.  
+tshortGSSAr <- as(shortGSSAr, "transactions")
+
+# Call function apriori() to find all rules with a support of 1% and a confidence of 0.6.
+rules <- (apriori(tshortGSSAr, parameter = list(support = 0.001, confidence = 0.6)))
+
+# For an overview of mined rules.
+sum<-summary(rules)
+
+#The number of rules is huge, therefore use subset. 
+rulesdepvarn <- subset(rules, subset = rhs %in% "depvar_g=0" & lift > 1.2)
+rulesdepvary <- subset(rules, subset = rhs %in% "depvar_g=1" & lift > 1.2)
+
+rulesn<-inspect(head(sort(rulesdepvarn, by = "confidence"), n = 10))
+rulesy<-inspect(head(sort(rulesdepvary, by = "confidence"), n = 10))
+
+#### plots for the "depvar=no"#####
+############################################################
+
+#subset rules for plotting purpose.
+
+sub_rulesdepvary<-head(sort(rulesdepvary, by = "confidence"), n = 10)
+sub_rulesdepvarn<-head(sort(rulesdepvarn, by = "confidence"), n = 10)
+
+
+#scatter plot
+plot(sub_rulesdepvarn, measure=c("support", "lift"), shading="confidence")
+
+#Two-key plot.Here support and confidence are used for the x and y-axes and the color of the points is used to indicate order which is the number of items contained in the rule. In this plot 4 and 5 items are contined.
+plot(sub_rulesdepvarn, shading="order", control=list(main = "Two-key plot"))
+
+#The group of most interesting rules according to lift (the default measure) are shown in the top-left corner of the plot. There are 1 rules which contain "marital=never married" and up to 3 other items.
+plot(sub_rulesdepvarn, method="grouped")
+
+#Itemsets as vertices and rules as directed edges between itemset.
+-plot(sub_rulesdepvarn, method="graph")
+
+#Items and rules as two types of vertices and edges indicate which items occur in which rule. This representation focuses on how the rules are composed of individual items and shows which rules share items.
+plot(sub_rulesdepvarn, method="graph", control=list(type="items"))
+
+# parellel cordinate plot displays the items on the y-axis as nominal values and the x-axis represents the positions in a rule, i.e., first item, second item, etc. Instead of a simple line an arrow is used where the head points to the consequent item.The width of the arrows represents support and the intensity of the color represent confidence. 
+plot(sub_rulesdepvarn, method="paracoord", control=list(reorder=TRUE))
+
+#### plots for the "depvar=yes"#####
+############################################################
+
+#subset rules for plotting purpose.
+sub_rulesdepvary<-head(sort(rulesdepvary, by = "confidence"), n = 10)
+
+#scatter plot
+plot(sub_rulesdepvary, measure=c("support", "lift"), shading="confidence")
+
+#Two-key plot 
+plot(sub_rulesdepvary, shading="order", control=list(main = "Two-key plot"))
+
+#The group of most interesting rules plot.
+plot(sub_rulesdepvary, method="grouped")
+
+#Graph-based visualization with items and rules as vertices.
+plot(sub_rulesdepvary, method="graph")
+
+#Graph-based visualization with items and rules as vertices.
+plot(sub_rulesdepvary, method="graph", control=list(type="items"))
+
+# parellel cordinate plot
+plot(sub_rulesdepvary, method="paracoord",control=list(reorder=TRUE))
