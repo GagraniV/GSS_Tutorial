@@ -1,0 +1,640 @@
+
+---
+title: "General Social Survey Analysis using R Language"
+date: "...."
+output:
+  slidy_presentation: default
+  ioslides_presentation:
+    keep_md: yes
+    transition: faster
+    widescreen: yes
+  beamer_presentation: default
+---
+
+## Objective
+
+Develop reproduciable R scripts to analyze General Scocial Survey (GSS) data utilizing different R packags for data mining and manipulation, modelling, and visulization. 
+
+```{r Set_ChunkOptions, echo=FALSE}
+#Select Chunk and package options @ http://yihui.name/knitr/options
+knitr::opts_chunk$set(comment = NA, echo= FALSE, message = FALSE, fig.align='center', warning = FALSE,cache=FALSE)
+
+```
+
+```{r Initial_Settings}
+#Set a working dirctory and dowload required library.
+setwd("C:/Users/gagranis/Documents/R/gss/tutorialGSS")
+#Download data into R console.
+# Load 'GSS.rda' saved in '0_downloadGSSdata.R' script.
+load("C:/Users/gagranis/Documents/R/gss/tutorialGSS/GSS.rda")
+#Load required packages.
+library("knitr")
+library ("markdown")
+library("ggplot2")
+library("gridExtra")
+library("arules")
+library("arulesViz")
+library("survey")
+library("scales")
+library("mfx")
+library("reshape2")
+library("plyr")
+library("stargazer")
+library("dplyr")
+library("ggvis")
+
+```
+
+```{r 1A_depvarselection_GSS,echo=FALSE}
+# Creating dummy for demographic varibles.
+#####################################################################################
+#Dependent Variable: 
+GSSdvar<-GSS
+depvar.sel<-function (dvar){
+if(dvar=="owngun")
+{
+depvar<-GSSdvar[ ,dvar]
+dv<-cbind(GSSdvar$depvar <-depvar)
+dv1<-cbind(GSSdvar$depvar_g <-GSSdvar$depvar)
+GSSdvar$depvar_g <- with(GSSdvar, ifelse(depvar_g == "yes", 1, 
+                                 ifelse(depvar_g == "no", 0,2)))
+GSSdvar<- subset(GSSdvar, depvar_g ==0  | depvar_g ==1)
+print(table(GSSdvar$depvar_g))
+save(GSSdvar,file="GSSdvar.rda")
+ttitle<<-"Gun Ownership in the US(Source:General Society Survey)"
+tylab<<-"%With Gun at Home"
+} else if (dvar=="gunlaw")
+{
+depvar<-GSSdvar[ ,dvar]
+dv<-cbind(GSSdvar$depvar <-depvar)
+dv1<-cbind(GSSdvar$depvar_g <-GSSdvar$depvar)
+GSSdvar$depvar_g <- with(GSSdvar, ifelse(depvar_g == "favor", 1, 
+                                  ifelse(depvar_g == "oppose", 0,2)))
+GSSdvar<- subset(GSSdvar, depvar_g ==0  | depvar_g ==1)
+print(table(GSSdvar$depvar_g))
+save(GSSdvar,file="GSSdvar.rda")
+ttitle<<-"Favor Police Permit to Buy Gun(Source:General Society Survey)"
+tylab<<-"%Favoring police Permit"
+}else if (dvar=="happy")
+{
+depvar<-GSSdvar[ ,dvar]
+dv<-cbind(GSSdvar$depvar <-depvar)
+dv1<-cbind(GSSdvar$depvar_g <-GSSdvar$depvar)
+GSSdvar$depvar_g <- with(GSSdvar, ifelse(depvar_g == "very happy", 1, 0))
+GSSdvar<- subset(GSSdvar, depvar_g ==0  | depvar_g ==1)
+print(table(GSSdvar$depvar_g))  
+save(GSSdvar,file="GSSdvar.rda")
+ttitle<<-"General Happiness in the US (Source:General Society Survey)"
+tylab<<-"%General Happiness"
+}else if (dvar=="grass")
+{
+  depvar<-GSSdvar[ ,dvar]
+  dv<-cbind(GSSdvar$depvar <-depvar)
+  dv1<-cbind(GSSdvar$depvar_g <-GSSdvar$depvar)
+  GSSdvar$depvar_g <- with(GSSdvar, ifelse(depvar_g == "legal", 1, 0))
+  GSSdvar<- subset(GSSdvar, depvar_g ==0  | depvar_g ==1)
+  print(table(GSSdvar$depvar_g))  
+  save(GSSdvar,file="GSSdvar.rda")
+  ttitle<<-"Marijuana be Made Legal in the US (Source:General Society Survey)"
+  tylab<<-"%Favoring Marijuana legalization"
+}else if (dvar=="trust")
+{
+  depvar<-GSSdvar[ ,dvar]
+  dv<-cbind(GSSdvar$depvar <-depvar)
+  dv1<-cbind(GSSdvar$depvar_g <-GSSdvar$depvar)
+  GSSdvar$depvar_g <- with(GSSdvar, ifelse(depvar_g == "can trust", 1, 
+                                           ifelse(depvar_g == "cannot trust", 0,2)))
+  GSSdvar<- subset(GSSdvar, depvar_g ==0  | depvar_g ==1)
+  print(table(GSSdvar$depvar_g))  
+  save(GSSdvar,file="GSSdvar.rda")
+  ttitle<<-"Can People be Trusted in the US (Source:General Society Survey)"
+  tylab<<-"%Trusting People"
+}else if (dvar=="fair")
+{
+  depvar<-GSSdvar[ ,dvar]
+  dv<-cbind(GSSdvar$depvar <-depvar)
+  dv1<-cbind(GSSdvar$depvar_g <-GSSdvar$depvar)
+  GSSdvar$depvar_g <- with(GSSdvar, ifelse(depvar_g == "fair", 1, 
+                                           ifelse(depvar_g == "take advantage", 0,2)))
+  GSSdvar<- subset(GSSdvar, depvar_g ==0  | depvar_g ==1)
+  print(table(GSSdvar$depvar_g))  
+  save(GSSdvar,file="GSSdvar.rda")
+  ttitle<<-"People are Fair or Try to Take Advantage in the US (Source:General Society Survey)"
+  tylab<<-"%Treating People Fairly"
+}else if (dvar=="satfin")
+{
+  depvar<-GSSdvar[ ,dvar]
+  dv<-cbind(GSSdvar$depvar <-depvar)
+  dv1<-cbind(GSSdvar$depvar_g <-GSSdvar$depvar)
+  GSSdvar$depvar_g <- with(GSSdvar, ifelse(depvar_g == "not at all sat", 0, 1))
+  GSSdvar<- subset(GSSdvar, depvar_g ==0  | depvar_g ==1)
+  print(table(GSSdvar$depvar_g))  
+  save(GSSdvar,file="GSSdvar.rda")
+  ttitle<<-"Satisfaction with Financial Situation in the US (Source:General Society Survey)"
+  tylab<<-"%Financial Satisfaction"
+}else if (dvar=="cappun")
+{
+  depvar<-GSSdvar[ ,dvar]
+  dv<-cbind(GSSdvar$depvar <-depvar)
+  dv1<-cbind(GSSdvar$depvar_g <-GSSdvar$depvar)
+  GSSdvar$depvar_g <- with(GSSdvar, ifelse(depvar_g == "favor",1, 0))
+  GSSdvar<- subset(GSSdvar, depvar_g ==0  | depvar_g ==1)
+  print(table(GSSdvar$depvar_g))  
+  save(GSSdvar,file="GSSdvar.rda")
+  ttitle<<-"Favor or Oppose Death Penalty for Murder in the US (Source:General Society Survey)"
+  tylab<<-"%Favoring Death Penalty"
+}
+else
+{
+print("no varible defiend")
+}
+}
+
+#invisible(capture.output(depvar.sel("owngun")))
+#invisible(capture.output(depvar.sel("gunlaw")))
+invisible(capture.output(depvar.sel("happy")))
+#invisible(capture.output(depvar.sel("grass")))
+#invisible(capture.output(depvar.sel("trust")))
+#invisible(capture.output(depvar.sel("fair")))
+#invisible(capture.output(depvar.sel("satfin")))
+#invisible(capture.output(depvar.sel("cappun")))
+#invisible(capture.output(depvar.sel("xxx")))
+```
+
+```{r 1B_predvarselection_GSS}
+
+# Load 'GSSdvar.rda' saved in '1A_depvarselection_GSS.R' script.
+load("C:/Users/gagranis/Documents/R/gss/tutorialGSS/GSSdvar.rda")
+
+# Creating dummy for demographic varibles(Predictor Variables).
+#####################################################################################
+
+#VAR1: MARITAL STATUS.
+mc<-cbind(GSSdvar$marital_g <-GSSdvar$marital)
+GSSdvar$marital_g <- with(GSSdvar,ifelse(marital_g == "married", 0, 
+                                 ifelse(marital_g == "widowed", 1,
+                                        ifelse(marital_g == "divorced", 2,
+                                               ifelse(marital_g == "separated", 3, 4)))))
+tg<-xtabs(~depvar_g + marital_g, data = GSSdvar)
+
+#VAR2: AGE.
+ac<-cbind(GSSdvar$age_g <-GSSdvar$age)
+GSSdvar$age_g <- with(GSSdvar,    ifelse(age_g <= 35, 0, 
+                                 ifelse(age_g >= 35 & age_g  < 44, 1,
+                                        ifelse(age_g >= 45 & age_g  < 54, 2,
+                                               ifelse(age_g >= 55 & age_g  < 64, 3,
+                                                      ifelse(age_g >= 65 & age_g  < 74, 4, 
+                                                             5))))))
+at<-xtabs(~depvar_g + age_g, data = GSSdvar)
+
+#VAR3: EDUCATION STATUS.
+dc<-cbind(GSSdvar$degree_g <-GSSdvar$degree)
+GSSdvar$degree_g <- with(GSSdvar, ifelse(degree_g =="lt high school",0, 
+                                 ifelse(degree_g == "high school", 1,
+                                        ifelse(degree_g == "junior college",2,
+                                               ifelse(degree_g == "bachelor",2,
+                                                      ifelse(degree_g == "graduate",2,0))))))
+dt<-xtabs(~depvar_g + degree_g, data = GSSdvar)
+
+#VAR4: RESPONDENTS SEX.
+sc<-cbind(GSSdvar$sex_g <-GSSdvar$sex)
+GSSdvar$sex_g <- with(GSSdvar, ifelse(sex_g =="male",0,1))
+st<-xtabs(~depvar_g + sex_g, data = GSSdvar)
+
+#VAR5: RESPONDENTS RACE.
+rc<-cbind(GSSdvar$race_g <-GSSdvar$race)
+GSSdvar$race_g <- with(GSSdvar, ifelse(race_g =="white",0, 
+                                       ifelse(race_g == "black", 1,2)))                 
+rt<-xtabs(~depvar_g + race_g, data = GSSdvar)
+
+#VAR6: REGION OF INTERVIEW.
+rec<-cbind(GSSdvar$region_g <-GSSdvar$region)
+GSSdvar$region_g <- with(GSSdvar, ifelse(region_g == "new england",0, 
+                                 ifelse(region_g == "middle atlantic", 1,
+                                        ifelse(region_g == "e. nor. central", 2,
+                                               ifelse(region_g == "w. nor. central", 3,
+                                                      ifelse(region_g == "south atlantic",4,
+                                                             ifelse(region_g == "e. sou. central", 5,
+                                                                    ifelse(region_g == "w. sou. central",6,
+                                                                           ifelse(region_g == "mountain", 7,
+                                                                                  ifelse(region_g == "pacific",8,0))))))))))
+rt<-xtabs(~depvar_g + region_g, data = GSSdvar)                            
+
+#VAR7: POLITICAL PARTY AFFILIATION.
+pc<-cbind(GSSdvar$partyid_g <-GSSdvar$partyid)
+GSSdvar$partyid_g <- with(GSSdvar,ifelse(partyid_g == "strong democrat",0, 
+                                 ifelse(partyid_g == "not str democrat",0,
+                                        ifelse(partyid_g == "ind,near dem", 0,
+                                               ifelse(partyid_g == "independent",2,
+                                                      ifelse(partyid_g == "ind,near rep",1,
+                                                             ifelse(partyid_g == "not str republican",1,
+                                                                    ifelse(partyid_g == "strong republican",1,
+                                                                           ifelse(partyid_g == "other party",2,0)))))))))
+pt<-xtabs(~depvar_g + partyid_g, data = GSSdvar)                         
+
+#VAR8: THINK OF SELF AS LIBERAL OR CONSERVATIVE.
+pc<-cbind(GSSdvar$polviews_g <-GSSdvar$polviews)
+GSSdvar$polviews_g <- with(GSSdvar, ifelse(polviews_g =="extremely liberal",0, 
+                                   ifelse(polviews_g == "slightly liberal", 0,
+                                          ifelse(polviews_g == "liberal",0,
+                                                 ifelse(polviews_g =="extrmly conservative",1, 
+                                                        ifelse(polviews_g == "slghtly conservative", 1,
+                                                               ifelse(polviews_g == "conservative",1,   
+                                                                      ifelse(polviews_g == "moderate",2,0))))))))
+
+pt<-xtabs(~depvar_g + polviews_g, data = GSSdvar) 
+
+#VAR9:HOW OFTEN ATTENDS RELIGIOUS SERVICES.
+ac<-cbind(GSSdvar$attend_g <-GSSdvar$attend)
+GSSdvar$attend_g <- with(GSSdvar, ifelse(attend_g =="never",2, 
+                                 ifelse(attend_g == "lt once a year ", 2,
+                                        ifelse(attend_g == "once a year",2,
+                                               ifelse(attend_g =="sevrl times a yr ",1, 
+                                                      ifelse(attend_g == "once a month", 1,
+                                                             ifelse(attend_g == "2-3x a month",1, 
+                                                                    ifelse(attend_g == "nrly every week", 0,
+                                                                           ifelse(attend_g == "every week",0,
+                                                                                  ifelse(attend_g == "more thn once wk ",0,0))))))))))
+
+
+pt<-xtabs(~depvar_g + attend_g, data = GSSdvar) 
+
+#VAR10: President of the USA at that time.
+sumy<-summary(GSSdvar$year)
+
+y<-cbind(GSSdvar$pres_g <-GSSdvar$year)
+GSSdvar$pres_g <- with(GSSdvar, ifelse(pres_g <=1977,0, 
+                               ifelse(pres_g <=1981, 1,
+                                      ifelse(pres_g <=1989,2,
+                                             ifelse(pres_g <=1993,3, 
+                                                    ifelse(pres_g <=2001, 4,
+                                                           ifelse(pres_g <=2008,5,6
+                                                           )))))))
+
+p<-table(GSSdvar$pres_g)
+#VAR11: POLITICAL PARTY in the POWER at that time.
+y1<-cbind(GSSdvar$party_g <-GSSdvar$year)
+GSSdvar$party_g <- with(GSSdvar, ifelse(party_g <=1977,0, 
+                                ifelse(party_g <=1981, 1,
+                                       ifelse(party_g <=1989,0,
+                                              ifelse(party_g <=1993,0, 
+                                                     ifelse(party_g <=2001, 1,
+                                                            ifelse(party_g <=2008,0,1
+                                                            ))))))) 
+pt<-table(GSSdvar$party_g)
+
+#VAR12: Percentile Group of realinc (FAMILY INCOME IN CONSTANT $)
+GSSdvar<- within(GSSdvar, realinc_g <- as.integer(cut(realinc, quantile(realinc, probs=0:5/5,na.rm=TRUE), include.lowest=TRUE)))
+
+ptt<-xtabs(~depvar_g + realinc_g, data = GSSdvar)
+
+# Further subset the GSS dataset and save as shortGSS for analysis using the survey package #
+#############################################################################################
+
+# Notice the depvar','depvar_g', which will be 'owngun' and 'owngun_g'if I selcets depvar.sel("owngun") in script 1A_depvarselection_GSS.R.
+
+vars.to.keep <- c("id","year","oversamp", "formwt", "wtssall","sampcode","sample",'depvar','depvar_g','marital',  'age',  'degree',  'sex',  'race',  'region',  'partyid',  'polviews',	'attend',	'realinc','marital_g',  'age_g',  'degree_g',  'sex_g',	'race_g',	'region_g',	'partyid_g',	'polviews_g',	'attend_g',	'realinc_g','pres_g','party_g')
+
+shortGSS <- GSSdvar[ , vars.to.keep]
+
+shortGSS$age_g1 = factor(shortGSS$age_g, levels=c(0,1,2,3,4,5), labels=c("age0","age1","age2","age3","age4","age5"))
+tt1<- table(shortGSS$age_g1)
+
+shortGSS$realinc_g1 = factor(shortGSS$realinc_g, levels=c(1,2,3,4,5), labels=c("realinc1","realinc2","realinc3","realinc4","realinc5"))
+tt2<- table(shortGSS$realinc_g1)
+
+shortGSS$pres_g1= factor(shortGSS$pres_g, levels=c(0,1,2,3,4,5,6), labels=c("Ford","Carter","Regan","BushI","Clinton","BushII","Obama"))
+
+save(shortGSS,file="shortGSS.rda")
+
+```
+
+## Time Series Plot
+
+```{r 2_depvartimeGSS,echo=FALSE,fig.width=14, fig.height=7}
+# Load shortGSS.rda dataset.
+load("C:/Users/gagranis/Documents/R/gss/tutorialGSS/shortGSS.rda")
+
+#Check missing values for years.Subset dataset for the years that particular question being not asked.
+#Apply factor() to the year after subsetting.
+tshortGSS<- subset(shortGSS, !is.na(shortGSS$polviews_g))
+tshortGSS$year<-as.character(tshortGSS$year)
+tshortGSS$year<-as.factor(tshortGSS$year)
+year<-levels(tshortGSS$year)
+
+## Calculate the compwt and samplerc variables to match SDA specifications
+tshortGSS <- transform( 
+  tshortGSS, 
+  compwt =  oversamp  *  formwt * wtssall, 
+  samplerc = 
+    ifelse(sample %in% 3:4 , 3 , 
+           ifelse( sample %in% 6:7 , 6 , 
+                   sample ) )
+)
+
+# Specify a complex survey design. It combines a data frame and all the survey design information needed to analyse it, which is used for survey modelling and summary functions. Type ?svydesign for detail.
+gss.designshort <- 
+  svydesign( 
+    ~sampcode, 
+    strata = ~samplerc, 
+    data = subset(tshortGSS, !is.na(sampcode)), 
+    weights = ~compwt, 
+    nest = TRUE
+  
+  )
+
+## Function to calculate ratio for depvar for each survey year.
+
+df = data.frame()
+
+for (i in year) {
+  tdf=data.frame()
+  tdf<-tryCatch({
+    svyby(
+      ~factor(depvar_g),
+      ~polviews_g+year,
+      design = subset(gss.designshort, year==i),
+      svymean,
+      na.rm = TRUE
+    )
+  },error=function(e){
+    (paste("error on year:", i))
+    
+  }
+  ) 
+  {
+    df<-rbind(df,tdf)
+  }  
+}
+
+depvartime<-df
+# Change varible name "factor(depvar_g)0" and "se.factor(depvar_g)0" into 'depvar' and 'se'.
+depvartime$depvar<-depvartime[,"factor(depvar_g)1"]
+depvartime$se<-depvartime[,"se.factor(depvar_g)1"]
+
+# Change varible year into date class.
+depvartime$year <- as.Date(depvartime$year, format = "%Y")
+
+# create a seperate column year_g, with year extracted from the date.
+depvartime$year_g<-as.POSIXlt(depvartime$year)$year+1900 
+# Change varible year into date class.
+depvartime$year_g <- as.Date(as.factor(depvartime$year_g), format = "%Y")
+
+#Change 'polviews_g' varible into factor class.
+depvartime$polviews_g<-as.factor(depvartime$polviews_g)
+
+#Seting x and y ranges.
+yrng <- range(depvartime$depvar, na.rm=TRUE)
+xrng <- range(depvartime$year_g, na.rm=TRUE)
+
+#plot
+############################################################
+#creating a dataframe depvartime1 for geom rect().
+
+pres1<-c("Ford","Carter","Regan","Bush-I","Clinton","Bush-II","Obama")
+start1<-c(1974,1977,1981,1989,1993,2001,2008)
+end1<-c(1977,1981,1989,1993,2001,2008,2012)
+party1<-c("R","D","R","R","D","R","D")
+depvartime1<-data.frame(pres1,start1,end1,party1)
+depvartime1$start1 <- as.Date(as.factor(depvartime1$start1), format = "%Y")
+depvartime1$end1 <- as.Date(as.factor(depvartime1$end1), format = "%Y")
+
+dv<-ggplot(depvartime, aes(x=year_g, y=depvar))+ geom_point(size=3,aes(group=depvartime$polviews_g, colour=depvartime$polviews_g))+geom_line(size=1,aes(group=depvartime$polviews_g, colour=depvartime$polviews_g))+ ggtitle(ttitle)+theme(plot.title = element_text(lineheight=1.0, face="bold"))+ ylab(tylab) + scale_y_continuous(limits=c(yrng[1]-.1,yrng[2]+.1),labels = percent_format())+xlab("Year")+scale_x_date(limits = c(xrng[1], xrng[2]),breaks = date_breaks("5 years"),labels = date_format("%Y"))
+
+dv<-dv+geom_text(aes(label = percent(depvartime$depvar)),hjust=-0.2, vjust=-.5,size = 2)+scale_colour_manual(values=c("blue", "red","darkgreen"),breaks=c("0", "1", "2"),labels=c("Liberal","Conservative", "Moderate"))+ theme_minimal()
+
+dv<-dv+ theme(legend.position="right",legend.direction="vertical")+theme(legend.title=element_blank())+guides(color=guide_legend(override.aes=list(fill=NA)))
+
+dv<-dv+geom_rect(data=depvartime1, aes(NULL, NULL, xmin=start1, xmax=end1,fill=party1),ymin=yrng[1]-.1, ymax=yrng[2]+.1)+scale_fill_manual(values = alpha(c("blue", "red"), 0.2),labels= c("Democratic", "Republican"))
+
+dv<-dv+geom_text(data=depvartime1, aes(x=start1, y=(yrng[2]+.08), label=pres1,size=4, hjust= 1.1, vjust= 2, angle=90))
+  
+dv<-dv+geom_vline(data=depvartime1, aes(xintercept=as.numeric(depvartime1$start1)),color="grey50", linetype=5, size=0.5)+scale_size(guide = "none")
+print(dv)
+```
+
+## Logit Model and Marginal Effect Plot
+
+```{r 6_logitmfx,fig.width=12, fig.height=9,echo=FALSE,out.extra='style="float:left"'}
+
+### Objective : logit model and marginal effect using "mfx" package for the any dependent varible selected in the script 0-1A  ###
+
+#######################################################################################
+
+depvarlogitmfx<-logitmfx(depvar_g~ factor(marital_g)+factor(age_g)+factor(degree_g)+factor(sex_g)+factor(race_g)+factor(region_g)+factor(partyid_g)+factor(polviews_g)+factor(attend_g)+factor(realinc_g)+factor(attend_g)+factor(pres_g), data = shortGSS)
+
+sum<-summary(depvarlogitmfx)
+# The depvarlogitmfx consits of four values (mfxest,fit,dcvar, and call). Model fit is in fit values. generated a depvarmfxfit dtaframe.
+depvarmfxfit<-as.data.frame(summary(depvarlogitmfx$fit)$coef)
+
+labmfxfit<-c('Intercept', 'Marital Status(Widowed)',  'Marital Status(Divorced)',  'Marital Status(Separated)',  'Marital Status(Never Married)',  'Age Group(<35-44yrs.)',  'Age Group(<45-54yrs.)',  'Age Group(<55-64yrs.)',  'Age Group(<65-74yrs.)',	'Age Group(<75yrs.)',	'Education Group(High School)',	'Education Group(College)',	'Sex(Female)',	'Race(Black)',	'Race(Other)',	'Census Region(Middle Atlantic)',	'Census Region(E.N. Central)',	'Census Region(W.N. Centra)',	'Census Region(South Atlantic)',	'Census Region(E. S. Centra)',	'Census Region(W. S. Central)',	'Census Region(Mountain)',	'Census Region(Pacific)',	'Political Party(Republican)',	'Political Party(Others)',	'Political Views(Conservative)',	'Political Views(Moderate)',	'Church Attendance(Sometimes)',	'Church Attendance(Rarely)',	'Income Group(40%)',	'Income Group(60%)',	'Income Group(80%)',	'Income Group(100%)', 'President(Carter)','President(Regan)','President(BushI)','President(Clinton)','President(BushII)','President(Obama)')
+
+depvarmfxfit1<-cbind(labmfxfit,depvarmfxfit)
+dvf<-cbind(depvarmfxfit1[,'se'] <-depvarmfxfit1[,'Std. Error'])
+# fix to make  income group to plot in a sequence.
+depvarmfxfit1$labmfxfit <- factor(depvarmfxfit1$labmfxfit, levels=unique(depvarmfxfit1$labmfxfit))
+
+depvarfitPlotmfx<- ggplot(depvarmfxfit1, aes(x=Estimate, y=labmfxfit))+ geom_point(size=3,colour="blue")+ ggtitle(ttitle)+ geom_errorbarh(aes(xmin=Estimate-se, xmax=Estimate+se), width=.1,colour="blue")+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab("Coefficients")+ylab(" ")+geom_vline(xintercept = 0,colour="blue")+aes(color=labmfxw)
+
+#depvarfitPlotmfx
+#######################################################################################
+#marginal effect for the depvar qiestion#
+############################################################
+
+# The depvarlogitmfx consits of four values (mfxest,fit,dcvar, and call). The average marignal effect is in mfxest values.
+#extracted mfxestvalues and coerce as a data frame.
+depvarlogitmfxdf<-as.data.frame(depvarlogitmfx$mfxest)
+
+# Created a list of factors to replace the dependent varible from the svyglm output.
+labmfx<-c('Widowed','Divorced', 'Separated','Never Married',  '<35-44yrs.',  '<45-54yrs.',  '<55-64yrs.',	'<65-74yrs.',	'<75yrs.',	'High School',	'College',	'Female',	'Black',	'Other',	'Middle Atlantic',	'E.N. Central',	'W.N. Centra',	'South Atlantic',	'E. S. Centra',	'W. S. Central',	'Mountain',	'Pacific',	'Republican',	'Others',	'Conservative',	'Moderate',	'Sometimes',	'Rarely',	'40%',	'60%',	'80%',	'100%', 'Carter','Regan','Bush-I','Clinton','Bush-II','Obama')
+
+labmfxw<-c('Marital Status',  'Marital Status',  'Marital Status',  'Marital Status',  'Age Group',  'Age Group',  'Age Group',	'Age Group',	'Age Group',	'Education Group',	'Education Group',	'Sex',	'Race',	'Race',	'Census Region',	'Census Region',	'Census Region',	'Census Region',	'Census Region',	'Census Region',	'Census Region',	'Census Region',	'Political Party',	'Political Party',	'Political Views',	'Political Views',	'Church Attendance',	'Church Attendance',	'Income Group',	'Income Group',	'Income Group',	'Income Group','President','President','President','President','President','President')
+
+depvarlogitmfxdf<-cbind(labmfx,labmfxw,depvarlogitmfxdf)
+dvm<-cbind(depvarlogitmfxdf[,'se'] <-depvarlogitmfxdf[,'Std. Err.'])
+dvm1<-cbind(depvarlogitmfxdf[,'Estimate'] <-depvarlogitmfxdf[,'dF/dx'])
+
+# fix to make  income group to plot in a sequence.
+depvarlogitmfxdf$labmfx <- factor(depvarlogitmfxdf$labmfx, levels=unique(depvarlogitmfxdf$labmfx))
+
+# Average marginal effect plot for depvar model output. 
+############################################################
+age<-filter(depvarlogitmfxdf,labmfxw == "Age Group")
+a<-ggplot(age, aes(y=Estimate, x=labmfx))
+a<-a+geom_point(size=2)
+a<-a+ggtitle(age$labmfxw)
+a<-a+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se))
+a<-a+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+a<-a+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+a<-a+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30)  
+  
+mar<-filter(depvarlogitmfxdf,labmfxw == "Marital Status")
+m<-ggplot(mar, aes(y=Estimate, x=labmfx))
+m<-m+geom_point(size=2)
+m<-m+ggtitle(mar$labmfxw)
+m<-m+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se))
+m<-m+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+m<-m+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+m<-m+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30) 
+
+sxc<-filter(depvarlogitmfxdf,labmfxw == "Sex")
+sx<-ggplot(sxc, aes(y=Estimate, x=labmfx))
+sx<-sx+geom_point(size=2)
+sx<-sx+ggtitle(sxc$labmfxw)
+sx<-sx+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+sx<-sx+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+sx<-sx+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+sx<-sx+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30) 
+
+incg<-filter(depvarlogitmfxdf,labmfxw == "Income Group")
+i<-ggplot(incg, aes(y=Estimate, x=labmfx))
+i<-i+geom_point(size=2)
+i<-i+ggtitle(incg$labmfxw)
+i<-i+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+i<-i+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+i<-i+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+i<-i+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30)
+
+edc<-filter(depvarlogitmfxdf,labmfxw == "Education Group")
+ed<-ggplot(edc, aes(y=Estimate, x=labmfx))
+ed<-ed+geom_point(size=2)
+ed<-ed+ggtitle(edc$labmfxw)
+ed<-ed+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+ed<-ed+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+ed<-ed+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+ed<-ed+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.35, .35) 
+
+rcc<-filter(depvarlogitmfxdf,labmfxw == "Race")
+rc<-ggplot(rcc, aes(y=Estimate, x=labmfx))
+rc<-rc+geom_point(size=2)
+rc<-rc+ggtitle(rcc$labmfxw)
+rc<-rc+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+rc<-rc+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+rc<-rc+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+rc<-rc+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30)  
+
+ppary<-filter(depvarlogitmfxdf,labmfxw == "Political Party")
+pp<-ggplot(ppary, aes(y=Estimate, x=labmfx))
+pp<-pp+geom_point(size=2)
+pp<-pp+ggtitle(ppary$labmfxw)
+pp<-pp+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+pp<-pp+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+pp<-pp+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+pp<-pp+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30)  
+
+pviews<-filter(depvarlogitmfxdf,labmfxw == "Political Views")
+pv<-ggplot(pviews, aes(y=Estimate, x=labmfx))
+pv<-pv+geom_point(size=2)
+pv<-pv+ggtitle(pviews$labmfxw)
+pv<-pv+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+pv<-pv+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+pv<-pv+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+pv<-pv+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30)
+
+presd<-filter(depvarlogitmfxdf,labmfxw == "President")
+pd<-ggplot(presd, aes(y=Estimate, x=labmfx))
+pd<-pd+geom_point(size=2)
+pd<-pd+ggtitle(presd$labmfxw)
+pd<-pd+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+pd<-pd+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+pd<-pd+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+pd<-pd+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30)  
+
+cac<-filter(depvarlogitmfxdf,labmfxw == "Church Attendance")
+ca<-ggplot(cac, aes(y=Estimate, x=labmfx))
+ca<-ca+geom_point(size=2)
+ca<-ca+ggtitle(cac$labmfxw)
+ca<-ca+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+ca<-ca+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+ca<-ca+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+ca<-ca+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.30, .30) 
+
+crc<-filter(depvarlogitmfxdf,labmfxw == "Census Region")
+cr<-ggplot(crc, aes(y=Estimate, x=labmfx))
+cr<-cr+geom_point(size=2)
+cr<-cr+ggtitle(crc$labmfxw)
+cr<-cr+ geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),width =.5)
+cr<-cr+theme(plot.title = element_text(lineheight=1.0, face="bold"))+xlab(" ")
+cr<-cr+ylab(" ")+geom_hline(xintercept = 0,colour="blue")
+cr<-cr+aes(color=labmfxw)+coord_flip()+theme(legend.position="none")+ylim(-.45, .45) 
+
+grid.arrange(a,m,sx,i,ed,rc,pp,pv,pd,ca,cr, ncol=3,main=textGrob(ttitle,gp=gpar(fontsize=20,font=3)))
+
+```
+
+## Association Rules
+
+```{r 7_arules, fig.width=4.5, fig.height=3,echo=FALSE,out.extra='style="float:left"'}
+### Objective : Finding association using "arules" package for any dependent varible selected in the script 0-1A  ###
+# Select the interest variables.
+var <- c('depvar_g','marital',  'age_g1',  'degree',  'sex',  'race',  'region',	'partyid',	'polviews',	'attend',	'realinc_g1','pres_g1')
+
+# Remove na values and convert all numeric and integer varibles as factors.
+shortGSSAr<- na.omit(shortGSS[c(var)])
+shortGSSAr[var] <- lapply(shortGSSAr[var], as.factor) 
+
+# Data are automatically recoded as a binary incidence matrix by coercing the data set to transactions.  
+tshortGSSAr <- as(shortGSSAr, "transactions")
+
+# Call function apriori() to find all rules with a support of 1% and a confidence of 0.6.
+invisible(capture.output(rules <- (apriori(tshortGSSAr, parameter = list(support = 0.001, confidence = 0.6)))))
+
+#The number of rules is huge, therefore use subset. 
+rulesdepvary <- subset(rules, subset = rhs %in% "depvar_g=1" & lift > 1.2)
+rulesdepvarn <- subset(rules, subset = rhs %in% "depvar_g=0" & lift > 1.2)
+
+#subset rules for plotting purpose.
+sub_rulesdepvary<-head(sort(rulesdepvary, by = "confidence"), n = 5)
+sub_rulesdepvarn<-head(sort(rulesdepvarn, by = "confidence"), n = 5)
+
+#plots
+plot(sub_rulesdepvary, measure=c("support", "lift"), shading="confidence")
+plot(sub_rulesdepvary, method="paracoord",control=list(reorder=TRUE))
+plot(sub_rulesdepvarn, measure=c("support", "lift"), shading="confidence")
+plot(sub_rulesdepvarn, method="paracoord", control=list(reorder=TRUE))
+
+```
+
+## Stepwise Regression  
+
+```{r 9_stepvar}
+
+# Select the interest variables.
+dvlist <- c('depvar_g','marital','age_g1',  'degree',  'sex',  'race',  'region',  'partyid',  'polviews',  'attend','realinc_g1','pres_g1')
+
+#  Remove na values and convert all numeric and integer varibles in factors.
+shortGSS1<- na.omit(shortGSS[c(dvlist)])
+shortGSS1[dvlist] <- lapply(shortGSS1[dvlist], as.factor) 
+
+# For converting levels as column names(library(reshape2))
+dv <- melt(as.matrix(shortGSS1[,-1]))
+dv1<-dcast(dv, Var1 ~ value, fun.aggregate = length, value.var="value")
+
+colnames(dv1) <- c("Var1",  "month2_3x", "age0","age1","age2","age3","age4","age5", "bachelor","black","BushI","BushII" ,"Carter", "Clinton" ,"conservative",  "divorced","e_nor_central",   "e_sou_central", "every_week", "extremely_liberal", "extrmly_conservative", "female", "Ford", "graduate","high_school",  "ind_near_dem",  "ind_near_rep",  "independent", "junior_college","liberal","lt_high_school","lt_once_a_year","male",   "married", "middle_atlantic",  "moderate","more_thn_once_wk",  "mountain","never",   "never_married","new_england",   "not_str_democrat",  "not_str_republican","nrly_every_week","Obama",   "once_a_month", "once_a_year",   "other",   "other_party",   "pacific", "realinc1","realinc2","realinc3","realinc4","realinc5","Regan", "separated",    "sevrl_times_ayr",   "slghtly_conservative" ,"slightly_liberal",   "south_atlantic","strong_democrat",  "strong_republican" ,"w_nor_central",   "w_sou_central",   "white",   "widowed")
+
+dfdep<-as.data.frame(shortGSS1$depvar_g)
+colnames(dfdep) <- "depvar_g"
+dv2<-na.omit(cbind(dfdep,dv1))
+
+nulldepvarmodel<-glm(depvar_g~ 1, family=binomial(link = "logit"), data=dv2)
+# The largest model
+
+fulldepvarmodel<-glm(depvar_g~  factor(month2_3x)+ factor(age0)+factor(age1)+factor(age2)+factor(age3)+factor(age4)+factor(age5)+factor(bachelor)+factor(black)+factor(Ford)+ factor(Carter)+factor(Regan)+factor(BushI)+factor(Clinton)+factor(BushII)+factor(Obama)+factor(conservative)+factor(divorced) + factor(e_nor_central)+factor(e_sou_central) +factor(every_week)+factor(extremely_liberal) + factor(extrmly_conservative)+ factor(female) +factor(graduate)  +factor(high_school)+factor(ind_near_dem) +factor(ind_near_rep)+factor(independent) +factor(junior_college)  +  factor(liberal)+factor(lt_high_school) + factor(lt_once_a_year) +   factor(male)+ factor(married)   +  factor(middle_atlantic) +  factor(moderate) +   factor(more_thn_once_wk) + factor(mountain)  +factor(never)+factor(never_married)+ factor(new_england)+ factor(not_str_democrat)  +   factor(not_str_republican)  + factor(nrly_every_week)   +   factor(once_a_month) +   factor(once_a_year)+ factor(other) +  factor(other_party)  +factor(pacific) +factor(realinc1)+factor(realinc2)+factor(realinc3)+factor(realinc4)+factor(realinc5)  +factor(separated) +   factor(sevrl_times_ayr)  +   factor(slghtly_conservative) +factor(slightly_liberal)    + factor(south_atlantic)   +    factor(strong_democrat)+    factor(strong_republican)   + factor(w_nor_central) +factor(w_sou_central) +  factor(white)     +  factor(widowed) ,family=binomial(link = "logit"), data = dv2)
+
+depvarStep<-step(nulldepvarmodel,scope=list(lower=nulldepvarmodel,upper=fulldepvarmodel),direction ="both",trace=FALSE)
+
+depvarsum<-summary(depvarStep)
+depvarch<-anova(depvarStep,test="Chisq")
+depvaran<-depvarStep$anova
+#for stargazer function library("stargazer")
+stargazer(depvarStep, type="text",out="model.txt")
+save(depvarStep, file='depvarStep.rda')
+```
+
+## Useful Links
+
+- Survey Data Avalabilty and Analysis using R
+- Analyze survey data for free with the r language  (http://asdfree.com) 
+- Rocode file: https://github.com/ajdamico/usgsd/tree/master/General%20Social%20Survey
+- The GSS website : http://www3.norc.org/GSS+Website/ 
+
