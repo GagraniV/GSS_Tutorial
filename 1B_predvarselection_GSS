@@ -1,0 +1,151 @@
+### script 0-1B : Analyzing General Social Survey (GSS) using R Language ####
+### Objective : Creating dummies for predictor varibles to analyze GSS data ###
+
+############################################################
+# Set working directory, where gss data, scripts, outputs will be stored.
+setwd("C:/Users/gagranis/Documents/R/gss/tutorialGSS")
+
+# Load 'GSSdvar.rda' saved in '1A_depvarselection_GSS.R' script.
+load("GSSdvar.rda")
+
+# Creating dummies for demographic varibles(Predictor Variables).
+############################################################
+
+#VAR1: MARITAL STATUS.
+mc<-cbind(GSSdvar$marital_g <-GSSdvar$marital)
+GSSdvar$marital_g <- with(GSSdvar,ifelse(marital_g == "married", 0, 
+                                 ifelse(marital_g == "widowed", 1,
+                                        ifelse(marital_g == "divorced", 2,
+                                               ifelse(marital_g == "separated", 3, 4)))))
+tg<-xtabs(~depvar_g + marital_g, data = GSSdvar)
+
+#VAR2: AGE.
+ac<-cbind(GSSdvar$age_g <-GSSdvar$age)
+GSSdvar$age_g <- with(GSSdvar,    ifelse(age_g <= 35, 0, 
+                                 ifelse(age_g >= 35 & age_g  < 44, 1,
+                                        ifelse(age_g >= 45 & age_g  < 54, 2,
+                                               ifelse(age_g >= 55 & age_g  < 64, 3,
+                                                      ifelse(age_g >= 65 & age_g  < 74, 4, 
+                                                             5))))))
+at<-xtabs(~depvar_g + age_g, data = GSSdvar)
+
+#VAR3: EDUCATION STATUS.
+dc<-cbind(GSSdvar$degree_g <-GSSdvar$degree)
+GSSdvar$degree_g <- with(GSSdvar, ifelse(degree_g =="lt high school",0, 
+                                 ifelse(degree_g == "high school", 1,
+                                        ifelse(degree_g == "junior college",2,
+                                               ifelse(degree_g == "bachelor",2,
+                                                      ifelse(degree_g == "graduate",2,0))))))
+dt<-xtabs(~depvar_g + degree_g, data = GSSdvar)
+
+#VAR4: RESPONDENTS SEX.
+sc<-cbind(GSSdvar$sex_g <-GSSdvar$sex)
+GSSdvar$sex_g <- with(GSSdvar, ifelse(sex_g =="male",0,1))
+st<-xtabs(~depvar_g + sex_g, data = GSSdvar)
+
+#VAR5: RESPONDENTS RACE.
+rc<-cbind(GSSdvar$race_g <-GSSdvar$race)
+GSSdvar$race_g <- with(GSSdvar, ifelse(race_g =="white",0, 
+                                       ifelse(race_g == "black", 1,2)))                 
+rt<-xtabs(~depvar_g + race_g, data = GSSdvar)
+
+#VAR6: REGION OF INTERVIEW.
+rec<-cbind(GSSdvar$region_g <-GSSdvar$region)
+GSSdvar$region_g <- with(GSSdvar, ifelse(region_g == "new england",0, 
+                                 ifelse(region_g == "middle atlantic", 1,
+                                        ifelse(region_g == "e. nor. central", 2,
+                                               ifelse(region_g == "w. nor. central", 3,
+                                                      ifelse(region_g == "south atlantic",4,
+                                                             ifelse(region_g == "e. sou. central", 5,
+                                                                    ifelse(region_g == "w. sou. central",6,
+                                                                           ifelse(region_g == "mountain", 7,
+                                                                                  ifelse(region_g == "pacific",8,0))))))))))
+rt<-xtabs(~depvar_g + region_g, data = GSSdvar)                            
+
+#VAR7: POLITICAL PARTY AFFILIATION.
+pc<-cbind(GSSdvar$partyid_g <-GSSdvar$partyid)
+GSSdvar$partyid_g <- with(GSSdvar,ifelse(partyid_g == "strong democrat",0, 
+                                 ifelse(partyid_g == "not str democrat",0,
+                                        ifelse(partyid_g == "ind,near dem", 0,
+                                               ifelse(partyid_g == "independent",2,
+                                                      ifelse(partyid_g == "ind,near rep",1,
+                                                             ifelse(partyid_g == "not str republican",1,
+                                                                    ifelse(partyid_g == "strong republican",1,
+                                                                           ifelse(partyid_g == "other party",2,0)))))))))
+pt<-xtabs(~depvar_g + partyid_g, data = GSSdvar)                         
+
+#VAR8: THINK OF SELF AS LIBERAL OR CONSERVATIVE.
+pc<-cbind(GSSdvar$polviews_g <-GSSdvar$polviews)
+GSSdvar$polviews_g <- with(GSSdvar, ifelse(polviews_g =="extremely liberal",0, 
+                                   ifelse(polviews_g == "slightly liberal", 0,
+                                          ifelse(polviews_g == "liberal",0,
+                                                 ifelse(polviews_g =="extrmly conservative",1, 
+                                                        ifelse(polviews_g == "slghtly conservative", 1,
+                                                               ifelse(polviews_g == "conservative",1,   
+                                                                      ifelse(polviews_g == "moderate",2,0))))))))
+
+pt<-xtabs(~depvar_g + polviews_g, data = GSSdvar) 
+
+#VAR9:HOW OFTEN ATTENDS RELIGIOUS SERVICES.
+ac<-cbind(GSSdvar$attend_g <-GSSdvar$attend)
+GSSdvar$attend_g <- with(GSSdvar, ifelse(attend_g =="never",2, 
+                                 ifelse(attend_g == "lt once a year ", 2,
+                                        ifelse(attend_g == "once a year",2,
+                                               ifelse(attend_g =="sevrl times a yr ",1, 
+                                                      ifelse(attend_g == "once a month", 1,
+                                                             ifelse(attend_g == "2-3x a month",1, 
+                                                                    ifelse(attend_g == "nrly every week", 0,
+                                                                           ifelse(attend_g == "every week",0,
+                                                                                  ifelse(attend_g == "more thn once wk ",0,0))))))))))
+
+
+pt<-xtabs(~depvar_g + attend_g, data = GSSdvar) 
+
+#VAR10: President of the USA at that time.
+summary(GSSdvar$year)
+
+y<-cbind(GSSdvar$pres_g <-GSSdvar$year)
+GSSdvar$pres_g <- with(GSSdvar, ifelse(pres_g <=1977,0, 
+                               ifelse(pres_g <=1981, 1,
+                                      ifelse(pres_g <=1989,2,
+                                             ifelse(pres_g <=1993,3, 
+                                                    ifelse(pres_g <=2001, 4,
+                                                           ifelse(pres_g <=2008,5,6
+                                                           )))))))
+
+p<-table(GSSdvar$pres_g)
+#VAR11: POLITICAL PARTY in the POWER at that time.
+y<-cbind(GSSdvar$party_g <-GSSdvar$year)
+GSSdvar$party_g <- with(GSSdvar, ifelse(party_g <=1977,0, 
+                                ifelse(party_g <=1981, 1,
+                                       ifelse(party_g <=1989,0,
+                                              ifelse(party_g <=1993,0, 
+                                                     ifelse(party_g <=2001, 1,
+                                                            ifelse(party_g <=2008,0,1
+                                                            ))))))) 
+pt<-table(GSSdvar$party_g)
+
+#VAR12: Percentile Group of realinc (FAMILY INCOME IN CONSTANT $)
+GSSdvar<- within(GSSdvar, realinc_g <- as.integer(cut(realinc, quantile(realinc, probs=0:5/5,na.rm=TRUE), include.lowest=TRUE)))
+
+pt<-xtabs(~depvar_g + realinc_g, data = GSSdvar)
+
+# Further subset the GSS dataset and save as shortGSS for analysis using the survey package #
+############################################################
+
+# Notice the depvar','depvar_g', which will be 'owngun' and 'owngun_g'if I selcets depvar.sel("owngun") in script 1A_depvarselection_GSS.R.
+
+vars.to.keep <- c("id","year","oversamp", "formwt", "wtssall","sampcode","sample",'depvar','depvar_g','marital',  'age',  'degree',  'sex',  'race',  'region',  'partyid',	'polviews',	'attend',	'realinc','marital_g',  'age_g',  'degree_g',  'sex_g',	'race_g',	'region_g',	'partyid_g',	'polviews_g',	'attend_g',	'realinc_g','pres_g','party_g')
+
+shortGSS <- GSSdvar[ , vars.to.keep]
+
+shortGSS$age_g1 = factor(shortGSS$age_g, levels=c(0,1,2,3,4,5), labels=c("age0","age1","age2","age3","age4","age5"))
+table(shortGSS$age_g1)
+
+shortGSS$realinc_g1 = factor(shortGSS$realinc_g, levels=c(1,2,3,4,5), labels=c("realinc1","realinc2","realinc3","realinc4","realinc5"))
+table(shortGSS$realinc_g1)
+
+shortGSS$pres_g1= factor(shortGSS$pres_g, levels=c(0,1,2,3,4,5,6), labels=c("Ford","Carter","Regan","BushI","Clinton","BushII","Obama"))
+
+save(shortGSS,file="shortGSS.rda")
+
